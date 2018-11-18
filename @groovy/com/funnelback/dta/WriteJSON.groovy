@@ -20,7 +20,11 @@ import org.jsoup.select.Elements
 import org.json.simple.JSONValue;
 
 /**
- * Extracts metadata from a document and dumps it to a log file suitable for loading into Elastic Search
+ * Adds the filtered time stamp to all documents.
+ *
+ * <p>By implementing Filter rather than StringDocumentFilter or ByteDocumentFilter
+ * we avoid any unnecessary conversion of the document to String or bytes respectively</p>
+ *
  */
 @groovy.util.logging.Log4j2
 public class WriteJSON implements StringDocumentFilter {
@@ -53,7 +57,7 @@ public class WriteJSON implements StringDocumentFilter {
         }
 
         // Read the GA360 IDs and load these into the filter
-        def ga360File = new File(searchHome.getAbsolutePath()+"/conf/"+collectionName+"/dta-gsa360.csv")
+        def ga360File = new File(searchHome.getAbsolutePath()+"/conf/"+collectionName+"/dta-ga360.csv")
 
         ga360File.readLines().each() {
             def ga360line = it.split(",")
@@ -77,6 +81,7 @@ public class WriteJSON implements StringDocumentFilter {
         // Helper function to sanitise the metadata keys, replacing special chars with underscores
         def sanitizeKey = { it.replaceAll(~/[.: ]+/,"_").toLowerCase()}
 
+//        String jsonHeader = "{\"index\":{\"_index\":\""+context.getConfigValue("dta.es-index-id").orElse("document-metadata")+"\", \"_type\":\"doc\"}}"
         // Variable to hold the JSON output for this document.
         String jsonRecord = "{"
 
@@ -91,18 +96,18 @@ public class WriteJSON implements StringDocumentFilter {
         else if (domain.endsWith(".au")) {
         // keep X.X.au
             tld = domain
-            tld=tld.replaceAll(/.+?\.(.+\.au$)/,'$1')
+            tld=tld.replaceAll(/.*?\.?([^.]+\.[^.]+?\.au$)/,'$1')
         }
         else {
         // keep X.X
             tld = domain
-            tld=tld.replaceAll(/.+?\.(.+$)/,'$1')
+            tld=tld.replaceAll(/.*?\.?([^.]+\.[^.]+$)/,'$1')
         }
 
         // Insert the document's URL into the JSON        
         jsonRecord += "\"DOCURL\":\""+JSONValue.escape(url)+"\","
         jsonRecord += "\"HOST\":\""+JSONValue.escape(domain)+"\","
-        jsonRecord += "\"TLD\":\""+tld+"\","
+        jsonRecord += "\"3LD\":\""+tld+"\","
         jsonRecord += "\"PORTFOLIO\":\""+portfolioMapping[tld]+"\","
 
         // Jsoup process the document to extract the metadata
@@ -210,7 +215,10 @@ public class WriteJSON implements StringDocumentFilter {
         jsonRecord += "\"REPORT_ID\":\""+context.getConfigValue("dta.report-id").orElse(today)+"\" "
         jsonRecord += "}"
 
-        // Write the JSON record to the log file
+        // Each record submitted to ES must be a pair of json records, a header packet and data packet.
+        //log.info(jsonHeader)
+        //log.info(jsonRecord)
+  //      jsonLogFile << jsonHeader+'\n'
         jsonLogFile << jsonRecord+'\n'
         jsonLogFile.flush()
 

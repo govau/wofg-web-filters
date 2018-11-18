@@ -124,10 +124,11 @@ println "Loaded validation patterns rules: "+validationPatterns
          *                 - CONTENT: use element content as the text for comparison and extraction
          *                 - ATTRIBUTE:<attribute name>: use <attribute name> as the text for comparison and extraction
          *   extractValue: Indicates if the value of the extractField should be extracted.
+         *   extractMode: TEXT or HTML
          *   document: Jsoup object representing the document
          */
 
-        def elementExists = { String selector, String metaField, String extractField, Boolean extractValue, document ->
+        def elementExists = { String selector, String metaField, String extractField, Boolean extractValue, String extractMode, document ->
 
             def els = document.select(selector)
             def extractAttr
@@ -149,7 +150,12 @@ println "Loaded validation patterns rules: "+validationPatterns
                         }
                         else {
                             // compare against the element value
-                            text = it.text()
+                            if ( extractMode == "HTML" ) {
+                                text = it.html()
+                            }
+                            else {
+                                text = it.text()
+                            }
                         }
 
                         context.additionalMetadata.put(metaField+"-value",text)
@@ -177,9 +183,10 @@ println "Loaded validation patterns rules: "+validationPatterns
          *                 - ATTRIBUTE:<attribute name>: use <attribute name> as the text for comparison and extraction
          *   length: length value used for the comparison
          *   extractValue: Indicates if the value of the compareField should be extracted.
+         *   extractMode: TEXT or HTML
          *   document: Jsoup object representing the document
          */
-        def checkLength = { String selector, String comparator, String compareField, Integer length, String metaField, Boolean extractValue, document ->
+        def checkLength = { String selector, String comparator, String compareField, Integer length, String metaField, Boolean extractValue, String extractMode, document ->
 
             def els = document.select(selector)
             def checkFoundCount = 0
@@ -193,20 +200,28 @@ println "Loaded validation patterns rules: "+validationPatterns
                 els.each {
 
                     def text =""
+                    def html = ""
                     if ( compareField.startsWith("ATTRIBUTE") ) {
                         // compare to the attribute's value
                         text = it.attr(compareAttr)
                     }
                     else {
                         // compare against the element value
+
                         text = it.text()
+                        html = it.html()
                     }
 
                     if (check_funcs[comparator](text, length.toInteger())) {
                         checkFoundCount++
                         if ( extractValue ) {
                             els.each {
-                                context.additionalMetadata.put(metaField+"-value",text)
+                                if ( extractMode == "HTML" ) {
+                                    context.additionalMetadata.put(metaField+"-value",html)
+                                }
+                                else {
+                                    context.additionalMetadata.put(metaField+"-value",text)
+                                }
                                 if (comparator.endsWith("_CHARS")) {
                                     context.additionalMetadata.put(metaField+"-size",text.length().toString())
                                 }
@@ -249,10 +264,11 @@ println "Loaded validation patterns rules: "+validationPatterns
          *                 - ATTRIBUTE:<attribute name>: use <attribute name> as the text for comparison and extraction
          *   compareText: value used for the comparison
          *   extractValue: Indicates if the value of the compareField should be extracted.
+         *   extractMode: TEXT or HTML
          *   document: Jsoup object representing the document
          */
 
-        def checkContent = { String selector, String comparator, String compareField, String compareText, String metaField, Boolean extractValue, document ->
+        def checkContent = { String selector, String comparator, String compareField, String compareText, String metaField, Boolean extractValue, String extractMode,  document ->
 
             def els = document.select(selector)
             def checkFoundCount = 0
@@ -271,7 +287,12 @@ println "Loaded validation patterns rules: "+validationPatterns
                     }
                     else {
                         // compare against the element value
-                        text = it.text()
+                        if ( extractMode == "HTML" ) {
+                            text = it.html()
+                        }
+                        else {
+                            text = it.text()
+                        }
                     }
                     if (check_funcs[comparator](text, compareText)) {
                         checkFoundCount++
@@ -358,7 +379,7 @@ println "Loaded validation patterns rules: "+validationPatterns
                     if ( it.extractField != null ) {
                         ef = it.extractField
                     }
-                    elementExists(it.selector,it.metaField,ef,it.extractValue,doc)
+                    elementExists(it.selector,it.metaField,ef,it.extractValue,it.extractMode,doc)
                 }
                 else if (it.check == "ELEMENT_LENGTH") {
                     // Set content extraction as the default
@@ -366,7 +387,7 @@ println "Loaded validation patterns rules: "+validationPatterns
                     if ( it.compareField != null ) {
                         ef = it.compareField
                     }
-                    checkLength(it.selector,it.comparator,ef,it.length,it.metaField,it.extractValue,doc)
+                    checkLength(it.selector,it.comparator,ef,it.length,it.metaField,it.extractValue,it.extractMode,doc)
                 }
                 else if (it.check == "ELEMENT_CONTENT") {
                     // Set content extraction as the default
@@ -374,7 +395,7 @@ println "Loaded validation patterns rules: "+validationPatterns
                     if ( it.compareField != null ) {
                         ef = it.compareField
                     }
-                    checkContent(it.selector,it.comparator,ef,it.compareText,it.metaField,it.extractValue,doc)
+                    checkContent(it.selector,it.comparator,ef,it.compareText,it.metaField,it.extractValue,it.extractMode,doc)
                 }
                 else if (it.check == "ELEMENT_VALIDATE") {
                     // Set content extraction as the default
@@ -383,7 +404,7 @@ println "Loaded validation patterns rules: "+validationPatterns
                         ef = it.compareField
                     }
                     // Special case of check content that applies pre-defined validation patterns
-                    checkContent(it.selector,it.comparator,ef,validationPatterns[it.matchPattern],it.metaField,it.extractValue,doc)
+                    checkContent(it.selector,it.comparator,ef,validationPatterns[it.matchPattern],it.metaField,it.extractValue,it.extractMode,doc)
                 }
                 else if (it.check == "WORD_LIST_COMPARE") {
                     wordListCompare(it.selector,it.wordList,it.metaField,doc)

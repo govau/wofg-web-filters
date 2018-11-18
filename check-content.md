@@ -31,6 +31,7 @@ Parameters in configuration:
 * `metaField`: Adds the metadata field with a value of true if the check was found, and `<metaField>-count` with a count of how many times the match was found
 * `extractField`: either `CONTENT`, or `ATTRIBUTE:<attribute name>` where `<attribute name>` is the attribute to extract.
 * `extractValue`: extract the value of the `extractField` and write to `<metaField>-value` if set to true
+* `extractMode`: extract the contents as TEXT (will strip out all tags) or HTML.  Acceptable values are TEXT or HTML.
 * `document`: Jsoup object representing the document
 
 #### Example configuration

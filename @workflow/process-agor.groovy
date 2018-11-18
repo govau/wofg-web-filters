@@ -22,13 +22,20 @@ def csvCustomHeader = config.value("csv.header.custom")
 def csvEncoding = config.value("csv.encoding", "UTF-8")
 def csvDebug = config.valueAsBoolean("csv.debug", false)
 
+// Flag to indicate if AGOR should be downloaded
+def downloadAgor = config.valueAsBoolean("agor.download",true)
+
 // Define output files
-def agorFile = new File(searchHomeString+"/conf/"+collection+"/agor.csv").newOutputStream()
+def agorFile
+if (downloadAgor) {
+    agorFile = new File(searchHomeString+"/conf/"+collection+"/agor.csv").newOutputStream()
+}
 def startUrlsFile = new File(searchHomeString+"/conf/"+collection+"/collection.cfg.start.urls.generated").newWriter()
 def portfolioMappingsFile = new File(searchHomeString+"/conf/"+collection+"/portfolio.mappings.generated").newWriter()
 def siteProfilesFile = new File(searchHomeString+"/conf/"+collection+"/site_profiles.cfg.generated").newWriter()
 def configLines = new File(searchHomeString+"/conf/"+collection+"/collection.cfg").readLines()
 def collectionCfg = new File(searchHomeString+"/conf/"+collection+"/collection.cfg.generated").newWriter()
+def staticPortfolioMappings = new File(searchHomeString+"/conf/"+collection+"/supplementalDomainMappings.csv").getText(csvEncoding)
 def configMap = [:]
 
 // Read collection.cfg into a Map
@@ -45,14 +52,51 @@ configLines.each {
 
 def csvFormats = ["csv": DEFAULT, "xls": EXCEL, "rfc4180": RFC4180, "tsv": TDF, "mysql": MYSQL]
 
+def domainPortfolioMap = [:]
+def seedList = [:]
+def nonGovAuList = [:]
+
+// Process the supplemental mappings.  We do this before doing AGOR so that any portfolio mappings in AGOR trump the values in the supplemental file.
+
+println "Processing supplemental CSV mappings"
+
+staticPortfolioMappings.replaceAll("[\n\r]+","\n")
+def supplementalCsv = null
+    
+if (csvHeader) {
+    // use the header row to define fields
+   supplementalCsv = CSVParser.parse(staticPortfolioMappings, csvFormats[format].withHeader())
+} 
+else {
+    if (csvCustomHeader != null) {
+        // use field definitions
+        supplementalCsv = CSVParser.parse(staticPortfolioMappings, csvFormats[format].withHeader(csvCustomHeader.split(",")))
+    }
+    else {
+        supplementalCsv = CSVParser.parse(staticPortfolioMappings, csvFormats[format])
+    }
+}
+
+for (record in supplementalCsv.iterator()) {
+    domainPortfolioMap[record.get("Domainname.gov.au")]=record.get("Portfolio")
+    seedList["http://"+record.get("Domainname.gov.au")]=0
+}
+
+// Process the AGOR CSV
+
 def sources = config.value("dta.agor.sourceurl").split(",")
 sources.each { source ->
     println "Gathering CSV from ${source}"
 
-    // Save a copy of the AGOR data
-    agorFile << new URL(source).openStream()
-    agorFile.close()
-   
+    if (downloadAgor) {
+        // Save a copy of the AGOR data
+        agorFile << new URL(source).openStream()
+        agorFile.close()
+    }
+    else {
+        println "Using pre-downloaded agor.csv"
+    }
+
     def csvText = new File(searchHomeString+"/conf/"+collection+"/agor.csv").getText(csvEncoding)
 
     // Remove blank lines
@@ -71,10 +115,6 @@ sources.each { source ->
         }
     }
 
-
-    def domainPortfolioMap = [:]
-    def seedList = [:]
-    def nonGovAuList = [:]
 
     for (record in csv.iterator()) {
         def fields = record.toMap()
@@ -114,14 +154,14 @@ println "Processing "+urltext
                     tld = "csiro.au"
                 }
                 else if (domain.endsWith(".au")) {
-                    // keep X.X.au
+                // keep X.X.au
                     tld = domain
-                    tld=tld.replaceAll(/.+?\.(.+\.au$)/,'$1')
+                    tld=tld.replaceAll(/.*?\.?([^.]+\.[^.]+?\.au$)/,'$1')
                 }
                 else {
-                    // keep X.X
+                // keep X.X
                     tld = domain
-                    tld=tld.replaceAll(/.+?\.(.+$)/,'$1')
+                    tld=tld.replaceAll(/.*?\.?([^.]+\.[^.]+$)/,'$1')
                 }
 
                 // Get the domain and portfolio and write to a map
