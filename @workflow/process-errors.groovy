@@ -26,6 +26,7 @@ errors = urlErrorsLog = new File(searchHomeString+"/data/"+collection+"/"+view+"
 def config = new NoOptionsConfig(searchHome, collection)
 
 // Define output file
+//def errorReportFile = new File(searchHomeString+"/data/"+collection+"/"+view+"/log/url_errors.json").newWriter()
 def errorReportFile = new File(searchHomeString+"/data/"+collection+"/log/error_report.json").newWriter()
 
 // Map to track occurrences of various errors
@@ -41,6 +42,10 @@ errors.each { String error ->
 
     def jsonLog = ""
 
+/*
+Command used to find new error messages - run this command if you find unknown errors reported and then add checks as required (and also add to this command):
+egrep -v "(400 Bad Request|401 Unauthorized|403 Forbidden|403 FORBIDDEN|404 Not Found|405 Method Not Allowed|500 Internal Server Error|500 Service unavailable|503 Service Unavailable|Contains robots NOFOLLOW tag|Can't scan root page|Can't get text signature|404 NOT FOUND|503 Service Temporarily Unavailable|Crawl URLs: java.lang.RuntimeException: java.lang.IllegalArgumentException: Metadata keys must not contain white space invalid key is:|500 500|404 |Crawl URLs: java.lang.RuntimeException: java.net.URISyntaxException: Illegal character in query|Exceeds max_download_size:|500 Layout not found:|400 Value for one of the query parameters specified in the request URI is invalid.|Crawl URLs: java.lang.NullPointerException|204 No Content|401 Authorization Required|Crawl URLs: java.lang.StackOverflowError|Link Extraction: java.net.MalformedURLException: no protocol:|500 |Link Extraction: java.net.MalformedURLException: For input string:|Crawl URLs: java.lang.IllegalArgumentException: unexpected url:|410 Gone|415 UNSUPPORTED MEDIA TYPE|302 Found|524 |Crawl URLs: java.lang.RuntimeException: java.net.URISyntaxException: Illegal character in path|303 See Other|504 GATEWAY_TIMEOUT|403 Access Denied/Forbidden|502 Proxy Error|301 Moved Permanently|504 Gateway Time-out|502 Bad Gateway|400 400|Link Extraction: java.net.MalformedURLException: Invalid host:|409 Conflict|400 BAD REQUEST|504 Gateway Time-out|400 Bad request|400 BAD_REQUEST|Crawl URLs: java.lang.RuntimeException: java.lang.ClassCastException: org.apache.pdfbox.cos.COSInteger cannot be cast to org.apache.pdfbox.cos.COSObject|Connection establishment timed out|unknown error\]|Read timed out|Parser timed out|Connection reset|Premature EOF encountered|SSLHandshakeException|\[490 |\[503 |\[302 |Net Error: www|\[410 |No route to host)|Crawl URLs: java.lang.RuntimeException: java.lang.NullPointerException|Crawl URLs: java.lang.OutOfMemoryError: Java heap space|Crawl URLs: java.lang.RuntimeException: java.lang.IllegalArgumentException: String must not be empty|Net Error: Unsupported protocol|Connection has been shutdown: javax.net.ssl.SSLException: Received fatal alert: close_notify|Reached store limit|Crawl URLs: java.lang.RuntimeException: groovy.lang.MissingPropertyException: No such property: Thumbnails for class: filter.ResultThumb" ./url_errors.log | less
+*/
     def m
     // HTTP errors detected
     // Error messages in format [<3 digit HTTP status code> <HTTP status message>]

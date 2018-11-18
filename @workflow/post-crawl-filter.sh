@@ -30,4 +30,7 @@ fi
 
 echo "Filtering ${SEARCH_HOME}/data/${COLLECTION_NAME}/${CURRENT_VIEW}/data/${WARC_FILE_STEM}.warc with $FILTER_CHAIN"
 
+# COMMAND TO POST CRAWL FILTER A WARC FILE, APPLYING THE JSOUP FILTER CHAIN FROM -collection
+#/opt/funnelback/linbin/java/bin/java -classpath "${SEARCH_HOME}/lib/java/all/*:${SEARCH_HOME}/conf/dta-filtertest/@groovy/*" com.funnelback.common.filter.util.FilterWarcFile -collection dta-filtertest -filter JSoupProcessingFilterProvider:com.funnelback.dta.WriteHeaders -in /opt/funnelback/data/dta-filtertest/live/data/finance -out /opt/funnelback/data/dta-filtertest/live/data/financeout -v
+
 ${SEARCH_HOME}/linbin/java/bin/java ${JAVA_OPTS} -classpath "${SEARCH_HOME}/lib/java/all/*:${SEARCH_HOME}/conf/${COLLECTION_NAME}/@groovy/*" com.funnelback.common.filter.util.FilterWarcFile -collection ${COLLECTION_NAME} -filter ${FILTER_CHAIN} -in ${SEARCH_HOME}/data/${COLLECTION_NAME}/${CURRENT_VIEW}/data/${WARC_FILE_STEM} -out ${SEARCH_HOME}/data/${COLLECTION_NAME}/${CURRENT_VIEW}/data/${WARC_FILE_STEM}_filtered -v
